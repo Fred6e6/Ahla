@@ -12,101 +12,97 @@ body{font-family:Tahoma;background:#f2f2f2;padding:20px}
 nav{background:#222;padding:10px;margin-bottom:15px;display:flex;gap:8px;flex-wrap:wrap}
 nav button{background:#6c757d;color:#fff;border:none;padding:7px 12px;border-radius:6px;cursor:pointer}
 nav .logout{background:#dc3545}
-
 table{width:100%;background:#fff;border-collapse:collapse}
 th,td{border:1px solid #ddd;padding:8px;text-align:center}
 th{background:#343a40;color:#fff}
-
 img{width:70px;margin:4px;border:1px solid #ccc;border-radius:6px}
-button{cursor:pointer}
-
-.export{background:#198754;color:#fff}
+.export{background:#198754;color:#fff;margin-bottom:10px}
 .download{background:#0d6efd;color:#fff;margin:3px}
-hr{margin:15px 0}
+.small{font-size:12px;color:#444}
+hr{margin:16px 0}
 </style>
 </head>
 
 <body>
 
 <nav>
-  <button onclick="navGo('admin.html')">📥 المستلمة</button>
-  <button onclick="navGo('sent.html')">📤 المرسلة</button>
-  <button class="logout" onclick="logout()">🚪 خروج</button>
+  <button type="button" onclick="location.href='admin.html'">📥 المستلمة</button>
+  <button type="button" onclick="location.href='sent.html'">📤 المرسلة</button>
+  <button type="button" class="logout" onclick="logout()">🚪 خروج</button>
 </nav>
 
-<h2>البيانات المستلمة من المستخدمين</h2>
+<script>
+if (localStorage.getItem("role") !== "admin") {
+  alert("غير مصرح لك بالدخول");
+  location.href = "index.html";
+}
+</script>
 
+<h2>البيانات المستلمة من المستخدمين</h2>
 <button class="export" onclick="exportExcel()">⬇️ تصدير Excel</button>
 
 <div id="all"></div>
 
 <script>
-/* ===== التنقل ===== */
-function basePath(){
-  const p = location.pathname;
-  return p.substring(0, p.lastIndexOf('/') + 1);
-}
-function navGo(page){
-  location.href = location.origin + basePath() + page;
-}
-
-/* ===== حماية ===== */
-if(localStorage.getItem("role") !== "admin"){
-  alert("غير مصرح لك بالدخول");
-  location.href = "index.html";
-}
-
-/* ===== البيانات ===== */
 const batches = JSON.parse(localStorage.getItem("ahla_batches")) || [];
-
-/* ===== عرض ===== */
 const container = document.getElementById("all");
 
-if(batches.length === 0){
-  container.innerHTML = "<p>لا توجد بيانات</p>";
+if (batches.length === 0) {
+  container.innerHTML = "<p>لا توجد بيانات.</p>";
 }
 
-batches.forEach((b, i)=>{
-  let html = `
-    <h3>دفعة ${i+1} — المستخدم: ${b.user} — ${b.date}</h3>
+batches.forEach((b, i) => {
+  let h = `
+    <h3>دفعة ${i + 1}</h3>
+    <p class="small">
+      <b>المستخدم:</b> ${b.user} —
+      <b>التاريخ:</b> ${b.date} —
+      <b>المعرّف:</b> ${b.id}
+    </p>
     <table>
-      <tr>
-        <th>#</th>
-        <th>رقم الصنف</th>
-        <th>الكمية</th>
-        <th>السعر</th>
-        <th>الإجمالي</th>
-      </tr>`;
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>رقم الصنف</th>
+          <th>الكمية</th>
+          <th>السعر</th>
+          <th>الإجمالي</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
 
-  b.items.forEach((it, idx)=>{
-    html += `
+  (b.items || []).forEach((it, idx) => {
+    h += `
       <tr>
-        <td>${idx+1}</td>
+        <td>${idx + 1}</td>
         <td>${it.code}</td>
         <td>${it.qty}</td>
         <td>${it.price}</td>
         <td>${it.total}</td>
-      </tr>`;
+      </tr>
+    `;
   });
 
-  html += `</table><div>`;
+  h += `</tbody></table><div>`;
 
-  (b.images || []).forEach((img, x)=>{
-    html += `
+  (b.images || []).forEach((img, x) => {
+    h += `
       <div style="display:inline-block;text-align:center">
         <img src="${img}">
         <br>
-        <button class="download" onclick="downloadImage('${img}','batch${i+1}_img${x+1}.png')">
+        <button class="download" onclick="downloadImage('${img}','batch_${i+1}_img_${x+1}.png')">
           تحميل الصورة
         </button>
-      </div>`;
+      </div>
+    `;
   });
 
-  html += `</div><hr>`;
-  container.innerHTML += html;
+  h += `</div><hr>`;
+  container.innerHTML += h;
 });
 
-/* ===== تحميل صورة ===== */
+/* تحميل صورة Base64 */
 function downloadImage(base64, filename){
   const a = document.createElement("a");
   a.href = base64;
@@ -116,17 +112,16 @@ function downloadImage(base64, filename){
   document.body.removeChild(a);
 }
 
-/* ===== تصدير Excel ===== */
+/* تصدير Excel (مع عمود فارغ بين السعر والإجمالي) */
 function exportExcel(){
-  if(batches.length === 0){
+  if (batches.length === 0) {
     alert("لا توجد بيانات للتصدير");
     return;
   }
 
   const rows = [];
-
-  batches.forEach((b, bi)=>{
-    b.items.forEach(it=>{
+  batches.forEach((b, bi) => {
+    (b.items || []).forEach(it => {
       rows.push({
         الدفعة: bi + 1,
         المستخدم: b.user,
@@ -134,7 +129,7 @@ function exportExcel(){
         رقم_الصنف: it.code,
         الكمية: it.qty,
         السعر: it.price,
-        "": "",          // عمود فارغ حسب طلبك السابق
+        "": "",          // عمود فارغ
         الإجمالي: it.total
       });
     });
@@ -143,7 +138,6 @@ function exportExcel(){
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Ahla Data");
-
   XLSX.writeFile(wb, "ahla-data.xlsx");
 }
 </script>
