@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<title>البيانات المستلمة | Ahla</title>
+<script src="js/roleGuard.js"></script>
+
+<style>
+  body{font-family:Tahoma;background:#f2f2f2;padding:20px}
+  h2{text-align:center;margin:0 0 12px}
+  table{width:100%;background:#fff;border-collapse:collapse}
+  th,td{border:1px solid #ddd;padding:8px;text-align:center}
+  th{background:#343a40;color:#fff}
+  button{padding:7px 12px;border:none;border-radius:6px;cursor:pointer}
+  .open{background:#198754;color:#fff}
+  .back{background:#6c757d;color:#fff}
+  .bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+</style>
+</head>
+
+<body>
+
+<script>
+  if (localStorage.getItem("role") !== "admin") {
+    alert("غير مصرح لك بالدخول");
+    location.href = "index.html";
+  }
+</script>
+
+<div class="bar">
+  <button class="back" type="button" onclick="location.href='admin.html'">رجوع للوحة المدير</button>
+  <div>إجمالي الدفعات: <b id="count">0</b></div>
+</div>
+
+<h2>البيانات المستلمة من المستخدمين (دفعات مستقلة)</h2>
+
+<table id="batches">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Batch ID</th>
+      <th>المُرسل</th>
+      <th>التاريخ</th>
+      <th>عدد الأصناف</th>
+      <th>فتح</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  const KEY_BATCHES = "ahla_batches";
+  const batches = JSON.parse(localStorage.getItem(KEY_BATCHES)) || [];
+  document.getElementById("count").textContent = batches.length;
+
+  const tbody = document.querySelector("#batches tbody");
+  tbody.innerHTML = "";
+
+  batches.forEach((b, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${b.batchId}</td>
+      <td>${b.sender || ""}</td>
+      <td>${b.createdAt || ""}</td>
+      <td>${(b.items || []).length}</td>
+      <td><button class="open" type="button" onclick="openBatch('${b.batchId}')">فتح</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  function openBatch(batchId){
+    localStorage.setItem("ahla_admin_open_batch", batchId);
+    location.href = "admin.html";
+  }
+</script>
+
+</body>
+</html>
