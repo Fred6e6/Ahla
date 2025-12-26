@@ -14,6 +14,12 @@ hr{margin:14px 0}
 </style>
 </head>
 <body>
+  <nav>
+  <button onclick="location.href='admin.html'">📥 المستلمة</button>
+  <button onclick="location.href='sent.html'">📤 المرسلة</button>
+  <button class="logout" onclick="logout()">🚪 خروج</button>
+</nav>
+
 
 <script>
 if(localStorage.getItem("role")!=="admin"){ alert("غير مصرح"); location.href="index.html"; }
