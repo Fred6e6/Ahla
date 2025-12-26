@@ -9,34 +9,30 @@ body{font-family:Tahoma;background:#f5f5f5;padding:20px}
 table{width:100%;background:#fff;border-collapse:collapse}
 th,td{border:1px solid #ddd;padding:8px;text-align:center}
 th{background:#9ccbc7}
-img{width:60px;margin:3px}
+img{width:64px;margin:4px;border:1px solid #ccc;border-radius:6px}
 </style>
 </head>
-
 <body>
 
 <h2>البيانات المرسلة</h2>
-
-<div id="content"></div>
+<div id="out"></div>
 
 <script>
 const user = localStorage.getItem("user");
-const batches = JSON.parse(localStorage.getItem("ahla_batches")) || [];
+const batches = JSON.parse(localStorage.getItem("ahla_batches"))||[];
 const mine = batches.filter(b=>b.user===user);
 const last = mine[mine.length-1];
 
 if(!last){
-  document.getElementById("content").innerText = "لا توجد بيانات مرسلة";
+  out.textContent="لا توجد بيانات مرسلة";
 }else{
-  let html = "<h3>الأصناف</h3><table><tr><th>#</th><th>رقم الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>";
-  last.items.forEach((i,idx)=>{
-    html+=`<tr><td>${idx+1}</td><td>${i.code}</td><td>${i.qty}</td><td>${i.price}</td><td>${i.total}</td></tr>`;
-  });
-  html+="</table><h3>صور الإرسال</h3>";
-  last.images.forEach(img=>html+=`<img src="${img}">`);
-  document.getElementById("content").innerHTML = html;
+  let h=`<p><b>التاريخ:</b> ${last.date}</p>`;
+  h+=`<table><tr><th>#</th><th>رقم الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>`;
+  last.items.forEach((i,idx)=>h+=`<tr><td>${idx+1}</td><td>${i.code}</td><td>${i.qty}</td><td>${i.price}</td><td>${i.total}</td></tr>`);
+  h+=`</table><h3>صور الإرسال</h3>`;
+  last.images.forEach(img=>h+=`<img src="${img}">`);
+  out.innerHTML=h;
 }
 </script>
-
 </body>
 </html>
