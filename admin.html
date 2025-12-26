@@ -2,61 +2,150 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>البيانات المستلمة | Ahla</title>
+<title>لوحة تحكم المدير | Ahla</title>
+
 <script src="js/roleGuard.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
 body{font-family:Tahoma;background:#f2f2f2;padding:20px}
 nav{background:#222;padding:10px;margin-bottom:15px;display:flex;gap:8px;flex-wrap:wrap}
 nav button{background:#6c757d;color:#fff;border:none;padding:7px 12px;border-radius:6px;cursor:pointer}
 nav .logout{background:#dc3545}
+
 table{width:100%;background:#fff;border-collapse:collapse}
 th,td{border:1px solid #ddd;padding:8px;text-align:center}
 th{background:#343a40;color:#fff}
-img{width:64px;margin:4px;border:1px solid #ccc;border-radius:6px}
-hr{margin:14px 0}
+
+img{width:70px;margin:4px;border:1px solid #ccc;border-radius:6px}
+button{cursor:pointer}
+
+.export{background:#198754;color:#fff}
+.download{background:#0d6efd;color:#fff;margin:3px}
+hr{margin:15px 0}
 </style>
 </head>
+
 <body>
 
 <nav>
-  <button type="button" onclick="navGo('admin.html')">📥 المستلمة</button>
-  <button type="button" onclick="navGo('sent.html')">📤 المرسلة</button>
-  <button type="button" onclick="navBack()">🔙 رجوع</button>
-  <button type="button" class="logout" onclick="logout()">🚪 خروج</button>
+  <button onclick="navGo('admin.html')">📥 المستلمة</button>
+  <button onclick="navGo('sent.html')">📤 المرسلة</button>
+  <button class="logout" onclick="logout()">🚪 خروج</button>
 </nav>
 
-<script>
-if (localStorage.getItem("role") !== "admin") {
-  alert("غير مصرح");
-  location.href = "index.html";
-}
-function basePath(){ const p=location.pathname; return p.substring(0,p.lastIndexOf('/')+1); }
-function navGo(page){ location.href = location.origin + basePath() + page; }
-function navBack(){
-  if(history.length>1) history.back();
-  else navGo("admin.html");
-}
-</script>
-
 <h2>البيانات المستلمة من المستخدمين</h2>
+
+<button class="export" onclick="exportExcel()">⬇️ تصدير Excel</button>
+
 <div id="all"></div>
 
 <script>
-const batches = JSON.parse(localStorage.getItem("ahla_batches")) || [];
-let h = "";
+/* ===== التنقل ===== */
+function basePath(){
+  const p = location.pathname;
+  return p.substring(0, p.lastIndexOf('/') + 1);
+}
+function navGo(page){
+  location.href = location.origin + basePath() + page;
+}
 
-batches.forEach((b, i) => {
-  h += `<h3>دفعة ${i+1} — المستخدم: ${b.user} — ${b.date}</h3>`;
-  h += `<table><tr><th>#</th><th>رقم الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>`;
-  b.items.forEach((it, idx) => {
-    h += `<tr><td>${idx+1}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>${it.total}</td></tr>`;
+/* ===== حماية ===== */
+if(localStorage.getItem("role") !== "admin"){
+  alert("غير مصرح لك بالدخول");
+  location.href = "index.html";
+}
+
+/* ===== البيانات ===== */
+const batches = JSON.parse(localStorage.getItem("ahla_batches")) || [];
+
+/* ===== عرض ===== */
+const container = document.getElementById("all");
+
+if(batches.length === 0){
+  container.innerHTML = "<p>لا توجد بيانات</p>";
+}
+
+batches.forEach((b, i)=>{
+  let html = `
+    <h3>دفعة ${i+1} — المستخدم: ${b.user} — ${b.date}</h3>
+    <table>
+      <tr>
+        <th>#</th>
+        <th>رقم الصنف</th>
+        <th>الكمية</th>
+        <th>السعر</th>
+        <th>الإجمالي</th>
+      </tr>`;
+
+  b.items.forEach((it, idx)=>{
+    html += `
+      <tr>
+        <td>${idx+1}</td>
+        <td>${it.code}</td>
+        <td>${it.qty}</td>
+        <td>${it.price}</td>
+        <td>${it.total}</td>
+      </tr>`;
   });
-  h += `</table><div>`;
-  (b.images||[]).forEach(img => h += `<img src="${img}">`);
-  h += `</div><hr>`;
+
+  html += `</table><div>`;
+
+  (b.images || []).forEach((img, x)=>{
+    html += `
+      <div style="display:inline-block;text-align:center">
+        <img src="${img}">
+        <br>
+        <button class="download" onclick="downloadImage('${img}','batch${i+1}_img${x+1}.png')">
+          تحميل الصورة
+        </button>
+      </div>`;
+  });
+
+  html += `</div><hr>`;
+  container.innerHTML += html;
 });
 
-all.innerHTML = h || "لا توجد بيانات";
+/* ===== تحميل صورة ===== */
+function downloadImage(base64, filename){
+  const a = document.createElement("a");
+  a.href = base64;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/* ===== تصدير Excel ===== */
+function exportExcel(){
+  if(batches.length === 0){
+    alert("لا توجد بيانات للتصدير");
+    return;
+  }
+
+  const rows = [];
+
+  batches.forEach((b, bi)=>{
+    b.items.forEach(it=>{
+      rows.push({
+        الدفعة: bi + 1,
+        المستخدم: b.user,
+        التاريخ: b.date,
+        رقم_الصنف: it.code,
+        الكمية: it.qty,
+        السعر: it.price,
+        "": "",          // عمود فارغ حسب طلبك السابق
+        الإجمالي: it.total
+      });
+    });
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Ahla Data");
+
+  XLSX.writeFile(wb, "ahla-data.xlsx");
+}
 </script>
 
 <script src="js/auth.js"></script>
