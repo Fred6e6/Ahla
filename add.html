@@ -12,11 +12,11 @@ table { width:100%; background:#fff; border-collapse:collapse }
 th,td { padding:8px; text-align:center; border:1px solid #ddd }
 th { background:#9ccbc7 }
 input { width:100%; padding:5px }
-button { padding:6px 10px; cursor:pointer }
+button { padding:6px 12px; cursor:pointer; border:none; border-radius:4px }
 .add { background:#6c757d; color:#fff }
-.save { background:#198754; color:#fff }
+.save { background:#198754; color:#fff; margin-top:10px }
 .delete { background:#dc3545; color:#fff }
-img { width:50px }
+img { width:50px; margin:2px }
 </style>
 </head>
 
@@ -31,7 +31,7 @@ img { width:50px }
   <th>الكمية</th>
   <th>السعر</th>
   <th>الإجمالي</th>
-  <th>الصورة</th>
+  <th>الصور (إجباري)</th>
   <th>إجراء</th>
 </tr>
 <tr>
@@ -40,11 +40,8 @@ img { width:50px }
   <td><input id="qty" type="number"></td>
   <td><input id="price" type="number"></td>
   <td><input id="total" type="number"></td>
-  <td><input id="img" type="file" accept="image/*"></td>
-  <td>
-    <button type="button" class="add" id="addBtn">إضافة</button>
-    <button type="button" class="save" onclick="saveData()">حفظ</button>
-  </td>
+  <td><input id="images" type="file" accept="image/*" multiple required></td>
+  <td><button type="button" class="add" onclick="addItem()">إضافة</button></td>
 </tr>
 </table>
 
@@ -60,88 +57,115 @@ img { width:50px }
   <th>الكمية</th>
   <th>السعر</th>
   <th>الإجمالي</th>
-  <th>الصورة</th>
+  <th>الصور</th>
   <th>إجراء</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
 
+<button class="save" onclick="saveAll()">💾 حفظ المدخلات</button>
+
 <script>
 const codeInput = document.getElementById("code");
 const qtyInput = document.getElementById("qty");
 const priceInput = document.getElementById("price");
 const totalInput = document.getElementById("total");
-const imgInput = document.getElementById("img");
+const imagesInput = document.getElementById("images");
 
 const username = localStorage.getItem("user") || "غير معروف";
-let data = JSON.parse(localStorage.getItem("ahla_data")) || [];
 
+/* ترقيم تسلسلي عام */
+let globalIndex = Number(localStorage.getItem("ahla_index")) || 1;
+
+/* بيانات مؤقتة قبل الحفظ */
+let buffer = [];
+
+/* حساب ذكي */
 qtyInput.oninput = () => priceInput.value && (totalInput.value = qtyInput.value * priceInput.value);
 priceInput.oninput = () => totalInput.value = qtyInput.value * priceInput.value;
 totalInput.oninput = () => priceInput.value = qtyInput.value ? (totalInput.value / qtyInput.value).toFixed(2) : "";
 
-document.getElementById("addBtn").addEventListener("click", addItem);
-
 function addItem() {
-  if (!codeInput.value || !qtyInput.value) return alert("أدخل رقم الصنف والكمية");
+  if (!codeInput.value || !qtyInput.value || imagesInput.files.length === 0) {
+    alert("رقم الصنف، الكمية، والصورة مطلوبة");
+    return;
+  }
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    data.push({
-      user: username,
-      code: codeInput.value,
-      unit: "حبة",
-      qty: qtyInput.value,
-      price: priceInput.value,
-      total: totalInput.value,
-      img: reader.result
-    });
-    render();
-    clear();
-  };
-  if (imgInput.files[0]) reader.readAsDataURL(imgInput.files[0]);
-  else reader.onload();
+  const imgs = [];
+  const files = Array.from(imagesInput.files);
+  let loaded = 0;
+
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      imgs.push(reader.result);
+      loaded++;
+      if (loaded === files.length) {
+        buffer.push({
+          index: globalIndex++,
+          user: username,
+          code: codeInput.value,
+          unit: "حبة",
+          qty: qtyInput.value,
+          price: priceInput.value,
+          total: totalInput.value,
+          images: imgs
+        });
+        render();
+        clearInputs();
+      }
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function render() {
   const tbody = document.querySelector("#dataTable tbody");
   tbody.innerHTML = "";
-  data.forEach((d,i)=>{
+  buffer.forEach((item,i)=>{
     tbody.innerHTML += `
-    <tr>
-      <td>${i+1}</td>
-      <td>${d.user}</td>
-      <td>${d.code}</td>
-      <td>${d.unit}</td>
-      <td>${d.qty}</td>
-      <td>${d.price}</td>
-      <td>${d.total}</td>
-      <td>${d.img ? `<img src="${d.img}">` : ""}</td>
-      <td><button class="delete" onclick="del(${i})">حذف</button></td>
-    </tr>`;
+      <tr>
+        <td>${item.index}</td>
+        <td>${item.user}</td>
+        <td>${item.code}</td>
+        <td>${item.unit}</td>
+        <td>${item.qty}</td>
+        <td>${item.price}</td>
+        <td>${item.total}</td>
+        <td>${item.images.map(img=>`<img src="${img}">`).join("")}</td>
+        <td><button class="delete" onclick="remove(${i})">حذف</button></td>
+      </tr>`;
   });
 }
 
-function del(i){
-  data.splice(i,1);
+function remove(i){
+  buffer.splice(i,1);
   render();
 }
 
-function saveData(){
-  localStorage.setItem("ahla_data", JSON.stringify(data));
-  alert("تم حفظ المدخلات");
+function saveAll() {
+  if (buffer.length === 0) {
+    alert("لا توجد بيانات للحفظ");
+    return;
+  }
+
+  const saved = JSON.parse(localStorage.getItem("ahla_data")) || [];
+  localStorage.setItem("ahla_data", JSON.stringify(saved.concat(buffer)));
+  localStorage.setItem("ahla_index", globalIndex);
+
+  buffer = [];
+  render();
+  alert("تم حفظ المدخلات بنجاح");
 }
 
-function clear(){
+function clearInputs(){
   codeInput.value="";
   qtyInput.value="";
   priceInput.value="";
   totalInput.value="";
-  imgInput.value="";
+  imagesInput.value="";
 }
-
-render();
 </script>
 
 </body>
