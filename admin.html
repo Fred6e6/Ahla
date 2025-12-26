@@ -9,38 +9,31 @@ body{font-family:Tahoma;background:#f2f2f2;padding:20px}
 table{width:100%;background:#fff;border-collapse:collapse}
 th,td{border:1px solid #ddd;padding:8px;text-align:center}
 th{background:#343a40;color:#fff}
-img{width:60px;margin:3px}
+img{width:64px;margin:4px;border:1px solid #ccc;border-radius:6px}
+hr{margin:14px 0}
 </style>
 </head>
-
 <body>
 
-<h2>البيانات المستلمة من المستخدمين</h2>
+<script>
+if(localStorage.getItem("role")!=="admin"){ alert("غير مصرح"); location.href="index.html"; }
+</script>
 
+<h2>البيانات المستلمة من المستخدمين</h2>
 <div id="all"></div>
 
 <script>
-if(localStorage.getItem("role")!=="admin"){
-  alert("غير مصرح");
-  location.href="index.html";
-}
-
-const batches = JSON.parse(localStorage.getItem("ahla_batches")) || [];
-let html="";
-
-batches.forEach((b,bi)=>{
-  html+=`<h3>دفعة ${bi+1} — المستخدم: ${b.user} — ${b.date}</h3>`;
-  html+="<table><tr><th>#</th><th>رقم الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>";
-  b.items.forEach((i,idx)=>{
-    html+=`<tr><td>${idx+1}</td><td>${i.code}</td><td>${i.qty}</td><td>${i.price}</td><td>${i.total}</td></tr>`;
-  });
-  html+="</table><div>";
-  b.images.forEach(img=>html+=`<img src="${img}">`);
-  html+="</div><hr>";
+const batches = JSON.parse(localStorage.getItem("ahla_batches"))||[];
+let h="";
+batches.forEach((b,i)=>{
+  h+=`<h3>دفعة ${i+1} — المستخدم: ${b.user} — ${b.date}</h3>`;
+  h+=`<table><tr><th>#</th><th>رقم الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>`;
+  b.items.forEach((it,idx)=>h+=`<tr><td>${idx+1}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>${it.total}</td></tr>`);
+  h+=`</table><div>`;
+  b.images.forEach(img=>h+=`<img src="${img}">`);
+  h+=`</div><hr>`;
 });
-
-document.getElementById("all").innerHTML = html || "لا توجد بيانات";
+all.innerHTML = h || "لا توجد بيانات";
 </script>
-
 </body>
 </html>
