@@ -2,10 +2,14 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>البيانات المستلمة</title>
+<title>البيانات المستلمة | Ahla</title>
 <script src="js/roleGuard.js"></script>
+
 <style>
 body{font-family:Tahoma;background:#f2f2f2;padding:20px}
+nav{background:#343a40;padding:10px;margin-bottom:15px}
+nav button{background:#6c757d;color:#fff;border:none;padding:7px 12px;margin:3px;border-radius:5px;cursor:pointer}
+nav .logout{background:#dc3545}
 table{width:100%;background:#fff;border-collapse:collapse}
 th,td{border:1px solid #ddd;padding:8px;text-align:center}
 th{background:#343a40;color:#fff}
@@ -13,33 +17,54 @@ img{width:64px;margin:4px;border:1px solid #ccc;border-radius:6px}
 hr{margin:14px 0}
 </style>
 </head>
+
 <body>
-  <nav>
+
+<nav>
   <button onclick="location.href='admin.html'">📥 المستلمة</button>
-  <button onclick="location.href='sent.html'">📤 المرسلة</button>
+  <button onclick="history.back()">🔙 رجوع</button>
   <button class="logout" onclick="logout()">🚪 خروج</button>
 </nav>
 
-
 <script>
-if(localStorage.getItem("role")!=="admin"){ alert("غير مصرح"); location.href="index.html"; }
+if (localStorage.getItem("role") !== "admin") {
+  alert("غير مصرح");
+  location.href = "index.html";
+}
 </script>
 
 <h2>البيانات المستلمة من المستخدمين</h2>
+
 <div id="all"></div>
 
 <script>
-const batches = JSON.parse(localStorage.getItem("ahla_batches"))||[];
-let h="";
-batches.forEach((b,i)=>{
-  h+=`<h3>دفعة ${i+1} — المستخدم: ${b.user} — ${b.date}</h3>`;
-  h+=`<table><tr><th>#</th><th>رقم الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>`;
-  b.items.forEach((it,idx)=>h+=`<tr><td>${idx+1}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>${it.total}</td></tr>`);
-  h+=`</table><div>`;
-  b.images.forEach(img=>h+=`<img src="${img}">`);
-  h+=`</div><hr>`;
+const batches = JSON.parse(localStorage.getItem("ahla_batches")) || [];
+let h = "";
+
+batches.forEach((b, i) => {
+  h += `<h3>دفعة ${i + 1} — المستخدم: ${b.user} — ${b.date}</h3>`;
+  h += `<table>
+          <tr>
+            <th>#</th><th>رقم الصنف</th>
+            <th>الكمية</th><th>السعر</th><th>الإجمالي</th>
+          </tr>`;
+  b.items.forEach((it, idx) => {
+    h += `<tr>
+            <td>${idx + 1}</td>
+            <td>${it.code}</td>
+            <td>${it.qty}</td>
+            <td>${it.price}</td>
+            <td>${it.total}</td>
+          </tr>`;
+  });
+  h += `</table><div>`;
+  b.images.forEach(img => h += `<img src="${img}">`);
+  h += `</div><hr>`;
 });
+
 all.innerHTML = h || "لا توجد بيانات";
 </script>
+
+<script src="js/auth.js"></script>
 </body>
 </html>
