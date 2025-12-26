@@ -4,85 +4,52 @@
 <meta charset="UTF-8">
 <title>البيانات المرسلة | Ahla</title>
 <script src="js/roleGuard.js"></script>
-
 <style>
 body{font-family:Tahoma;background:#f5f5f5;padding:20px}
-nav{background:#222;padding:10px;margin-bottom:15px;display:flex;gap:8px;flex-wrap:wrap}
-nav button{background:#6c757d;color:#fff;border:none;padding:7px 12px;border-radius:6px;cursor:pointer}
-nav .logout{background:#dc3545}
-table{width:100%;background:#fff;border-collapse:collapse}
-th,td{border:1px solid #ddd;padding:8px;text-align:center}
-th{background:#9ccbc7}
-img{width:70px;margin:4px;border:1px solid #ccc;border-radius:6px}
-.small{font-size:12px;color:#444}
+img{width:70px;margin:4px;border:1px solid #ccc}
 </style>
 </head>
-
 <body>
 
-<nav>
-  <button type="button" onclick="location.href='add.html'">➕ إدخال</button>
-  <button type="button" onclick="location.href='sent.html'">📤 المرسلة</button>
-  <button type="button" class="logout" onclick="logout()">🚪 خروج</button>
-</nav>
-
-<h2>البيانات المرسلة</h2>
+<h2>آخر إرسال</h2>
 <div id="out"></div>
 
-<script>
+<script type="module">
+import { supabase } from "./supabase.js";
+
 const user = localStorage.getItem("user");
-const batches = JSON.parse(localStorage.getItem("ahla_batches")) || [];
 
-// آخر دفعة لهذا المستخدم
-const mine = batches.filter(b => b.user === user);
-const last = mine[mine.length - 1];
+const { data: batch } = await supabase
+  .from("batches")
+  .select("*")
+  .eq("user_name", user)
+  .order("created_at", { ascending:false })
+  .limit(1)
+  .single();
 
-const out = document.getElementById("out");
+const { data: items } = await supabase
+  .from("items")
+  .select("*")
+  .eq("batch_id", batch.id);
 
-if (!last) {
-  out.innerHTML = "<p>لا توجد بيانات مرسلة.</p>";
-} else {
-  let h = `
-    <p class="small">
-      <b>المستخدم:</b> ${last.user} —
-      <b>التاريخ:</b> ${last.date} —
-      <b>المعرّف:</b> ${last.id}
-    </p>
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>رقم الصنف</th>
-          <th>الكمية</th>
-          <th>السعر</th>
-          <th>الإجمالي</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
+const { data: images } = await supabase
+  .storage.from("batch-images")
+  .list(batch.id);
 
-  last.items.forEach((i, idx) => {
-    h += `
-      <tr>
-        <td>${idx + 1}</td>
-        <td>${i.code}</td>
-        <td>${i.qty}</td>
-        <td>${i.price}</td>
-        <td>${i.total}</td>
-      </tr>
-    `;
-  });
+let h = "<table border=1><tr><th>#</th><th>الصنف</th><th>الكمية</th></tr>";
+items.forEach((i,idx)=>{
+  h += `<tr><td>${idx+1}</td><td>${i.code}</td><td>${i.qty}</td></tr>`;
+});
+h += "</table><h3>الصور</h3>";
 
-  h += `</tbody></table><h3>صور الإرسال</h3>`;
+images.forEach(img=>{
+  const url = supabase.storage.from("batch-images")
+    .getPublicUrl(`${batch.id}/${img.name}`).data.publicUrl;
+  h += `<img src="${url}">`;
+});
 
-  (last.images || []).forEach(img => {
-    h += `<img src="${img}">`;
-  });
-
-  out.innerHTML = h;
-}
+out.innerHTML = h;
 </script>
 
-<script src="js/auth.js"></script>
 </body>
 </html>
