@@ -4,20 +4,19 @@
 <meta charset="UTF-8">
 <title>إدخال الأصناف | Ahla</title>
 <script src="js/roleGuard.js"></script>
-
 <style>
 body{font-family:Tahoma;background:#f5f5f5;padding:20px}
 table{width:100%;background:#fff;border-collapse:collapse}
 th,td{border:1px solid #ddd;padding:8px;text-align:center}
 th{background:#9ccbc7}
 input{width:100%;padding:6px}
-button{padding:7px 12px;border:none;border-radius:5px;cursor:pointer}
+button{padding:8px 14px;border:none;border-radius:6px;cursor:pointer}
 .add{background:#6c757d;color:#fff}
-.save{background:#198754;color:#fff;margin-top:10px}
-img{width:60px;margin:3px;border:1px solid #ccc}
+.save{background:#198754;color:#fff;margin-top:12px}
+img{width:64px;margin:4px;border:1px solid #ccc;border-radius:6px}
+hr{margin:14px 0}
 </style>
 </head>
-
 <body>
 
 <h2>إدخال الأصناف</h2>
@@ -34,9 +33,9 @@ img{width:60px;margin:3px;border:1px solid #ccc}
 <tr>
   <td><input id="code"></td>
   <td><input value="حبة" disabled></td>
-  <td><input id="qty" type="number"></td>
-  <td><input id="price" type="number"></td>
-  <td><input id="total" type="number"></td>
+  <td><input id="qty" type="number" min="1"></td>
+  <td><input id="price" type="number" step="0.01"></td>
+  <td><input id="total" type="number" step="0.01"></td>
   <td><button type="button" class="add" onclick="addItem()">إضافة</button></td>
 </tr>
 </table>
@@ -61,95 +60,92 @@ img{width:60px;margin:3px;border:1px solid #ccc}
 
 <h3>صور الإرسال (إجباري – صورة واحدة أو أكثر)</h3>
 <input id="batchImages" type="file" accept="image/*" multiple>
-
 <div id="preview"></div>
 
-<button class="save" onclick="saveBatch()">💾 حفظ وإرسال</button>
+<button class="save" onclick="send()">💾 حفظ التعديلات وإرسال</button>
 
 <script>
 const username = localStorage.getItem("user") || "غير معروف";
-
 const codeInput = document.getElementById("code");
-const qtyInput = document.getElementById("qty");
-const priceInput = document.getElementById("price");
-const totalInput = document.getElementById("total");
-const imagesInput = document.getElementById("batchImages");
-const preview = document.getElementById("preview");
+const qtyInput  = document.getElementById("qty");
+const priceInput= document.getElementById("price");
+const totalInput= document.getElementById("total");
+const imagesInp = document.getElementById("batchImages");
+const preview   = document.getElementById("preview");
 
 let items = [];
+let lastEdit = null;
 
-qtyInput.oninput = () => priceInput.value && (totalInput.value = qtyInput.value * priceInput.value);
-priceInput.oninput = () => totalInput.value = qtyInput.value * priceInput.value;
-totalInput.oninput = () => priceInput.value = qtyInput.value ? (totalInput.value / qtyInput.value).toFixed(2) : "";
+// حساب ذكي
+priceInput.oninput = ()=>{ lastEdit="price"; if(qtyInput.value) totalInput.value=(qtyInput.value*priceInput.value).toFixed(2); };
+totalInput.oninput = ()=>{ lastEdit="total"; if(qtyInput.value) priceInput.value=(totalInput.value/qtyInput.value).toFixed(2); };
+qtyInput.oninput   = ()=>{
+  if(!qtyInput.value) return;
+  if(lastEdit==="price" && priceInput.value) totalInput.value=(qtyInput.value*priceInput.value).toFixed(2);
+  if(lastEdit==="total" && totalInput.value) priceInput.value=(totalInput.value/qtyInput.value).toFixed(2);
+};
 
 function addItem(){
   if(!codeInput.value || !qtyInput.value) return alert("أدخل رقم الصنف والكمية");
-
   items.push({
     code: codeInput.value,
-    qty: qtyInput.value,
-    price: priceInput.value,
-    total: totalInput.value
+    unit: "حبة",
+    qty: Number(qtyInput.value),
+    price: Number(priceInput.value||0),
+    total: Number(totalInput.value||0)
   });
-
-  renderItems();
-  codeInput.value = qtyInput.value = priceInput.value = totalInput.value = "";
+  render();
+  codeInput.value=qtyInput.value=priceInput.value=totalInput.value="";
+  lastEdit=null;
 }
 
-function renderItems(){
-  const tbody = document.querySelector("#itemsTable tbody");
-  tbody.innerHTML = "";
+function render(){
+  const tb=document.querySelector("#itemsTable tbody");
+  tb.innerHTML="";
   items.forEach((it,i)=>{
-    tbody.innerHTML += `
+    tb.innerHTML+=`
       <tr>
-        <td>${i+1}</td>
-        <td>${it.code}</td>
-        <td>${it.qty}</td>
-        <td>${it.price}</td>
-        <td>${it.total}</td>
-        <td><button onclick="removeItem(${i})">✖</button></td>
+        <td>${i+1}</td><td>${it.code}</td><td>${it.qty}</td>
+        <td>${it.price}</td><td>${it.total}</td>
+        <td><button onclick="del(${i})">✖</button></td>
       </tr>`;
   });
 }
+function del(i){ items.splice(i,1); render(); }
 
-function removeItem(i){
-  items.splice(i,1);
-  renderItems();
-}
-
-imagesInput.onchange = () => {
-  preview.innerHTML = "";
-  Array.from(imagesInput.files).forEach(f=>{
-    const r = new FileReader();
-    r.onload = () => preview.innerHTML += `<img src="${r.result}">`;
+imagesInp.onchange=()=>{
+  preview.innerHTML="";
+  Array.from(imagesInp.files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=()=>preview.innerHTML+=`<img src="${r.result}">`;
     r.readAsDataURL(f);
   });
 };
 
-function saveBatch(){
-  if(items.length === 0) return alert("لا توجد أصناف");
-  if(imagesInput.files.length === 0) return alert("الصور مطلوبة");
+function send(){
+  if(items.length===0) return alert("لا توجد أصناف");
+  if(imagesInp.files.length===0) return alert("الصور مطلوبة");
 
-  const readers = Array.from(imagesInput.files).map(f=>new Promise(res=>{
-    const r = new FileReader();
-    r.onload = ()=>res(r.result);
-    r.readAsDataURL(f);
-  }));
+  const toBase64 = f => new Promise(res=>{
+    const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(f);
+  });
 
-  Promise.all(readers).then(images=>{
-    const batches = JSON.parse(localStorage.getItem("ahla_batches")) || [];
+  Promise.all(Array.from(imagesInp.files).map(toBase64)).then(images=>{
+    const batches = JSON.parse(localStorage.getItem("ahla_batches"))||[];
     batches.push({
       id: Date.now(),
       user: username,
       date: new Date().toLocaleString(),
-      items,
-      images
+      items: items,
+      images: images
     });
     localStorage.setItem("ahla_batches", JSON.stringify(batches));
-    window.location.href = "sent.html";
+
+    // تفريغ + انتقال
+    items=[]; render(); imagesInp.value=""; preview.innerHTML="";
+    location.href="sent.html";
   });
 }
 </script>
-
 </body>
 </html>
