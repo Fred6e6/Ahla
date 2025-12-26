@@ -35,6 +35,10 @@ td {
   text-align: center;
 }
 
+img {
+  width: 50px;
+}
+
 button {
   padding: 6px 10px;
   border: none;
@@ -65,11 +69,13 @@ button {
 <thead>
 <tr>
   <th>#</th>
+  <th>المستخدم</th>
   <th>رقم الصنف</th>
   <th>الوحدة</th>
   <th>الكمية</th>
   <th>السعر</th>
   <th>الإجمالي</th>
+  <th>الصورة</th>
   <th>إجراء</th>
 </tr>
 </thead>
@@ -96,11 +102,13 @@ function render() {
     const row = tbody.insertRow();
     row.innerHTML = `
       <td>${i + 1}</td>
+      <td>${item.user || ""}</td>
       <td>${item.code}</td>
       <td>${item.unit}</td>
       <td>${item.qty}</td>
       <td>${item.price}</td>
       <td>${item.total}</td>
+      <td>${item.img ? `<img src="${item.img}">` : ""}</td>
       <td>
         <button class="delete" onclick="deleteItem(${i})">حذف</button>
       </td>
@@ -128,7 +136,18 @@ function exportExcel() {
     return;
   }
 
-  const ws = XLSX.utils.json_to_sheet(data);
+  // تجهيز البيانات مع عمود فارغ بين السعر والإجمالي
+  const excelData = data.map(item => ({
+    المستخدم: item.user || "",
+    رقم_الصنف: item.code,
+    الوحدة: item.unit,
+    الكمية: item.qty,
+    السعر: item.price,
+    "": "",            // ← عمود فارغ
+    الإجمالي: item.total
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(excelData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Ahla Data");
   XLSX.writeFile(wb, "ahla-data.xlsx");
