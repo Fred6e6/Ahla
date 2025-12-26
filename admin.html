@@ -2,151 +2,45 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>لوحة تحكم المدير | Ahla</title>
-
+<title>البيانات المستلمة</title>
 <script src="js/roleGuard.js"></script>
-
 <style>
-body { font-family: Tahoma; background:#f2f2f2; padding:20px }
-h2 { text-align:center; margin:0 0 12px }
-table { width:100%; background:#fff; border-collapse:collapse }
-th { background:#343a40; color:#fff; padding:10px }
-td { padding:8px; text-align:center; border:1px solid #ddd }
-img.thumb{width:46px;height:46px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #ccc}
-button{padding:7px 12px;border:none;border-radius:6px;cursor:pointer;margin:3px}
-.export{background:#198754;color:#fff}
-.logout{background:#000;color:#fff;float:left}
-.nav{background:#6c757d;color:#fff}
-.delete{background:#dc3545;color:#fff}
-.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap}
-.small{font-size:12px;color:#333}
+body{font-family:Tahoma;background:#f2f2f2;padding:20px}
+table{width:100%;background:#fff;border-collapse:collapse}
+th,td{border:1px solid #ddd;padding:8px;text-align:center}
+th{background:#343a40;color:#fff}
+img{width:60px;margin:3px}
 </style>
 </head>
 
 <body>
 
-<script>
-  if (localStorage.getItem("role") !== "admin") {
-    alert("غير مصرح لك بالدخول");
-    window.location.href = "index.html";
-  }
-</script>
+<h2>البيانات المستلمة من المستخدمين</h2>
 
-<button class="logout" onclick="logout()">خروج</button>
-
-<h2>لوحة تحكم المدير</h2>
-
-<div class="bar">
-  <div>
-    <button class="nav" type="button" onclick="location.href='received.html'">البيانات المستلمة (دفعات)</button>
-  </div>
-  <div class="small">
-    الدفعة المفتوحة: <b id="bid">-</b>
-  </div>
-  <div>
-    <button class="export" onclick="exportExcel()">تحميل Excel (للـدفعة المفتوحة)</button>
-    <button class="delete" onclick="deleteOpenBatch()">حذف الدفعة المفتوحة</button>
-  </div>
-</div>
-
-<table id="adminTable">
-<thead>
-<tr>
-  <th>#</th>
-  <th>المستخدم</th>
-  <th>رقم الصنف</th>
-  <th>الوحدة</th>
-  <th>الكمية</th>
-  <th>السعر</th>
-  <th>الإجمالي</th>
-  <th>صور هذا الصنف</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<div id="all"></div>
 
 <script>
-const KEY_BATCHES = "ahla_batches";
-const KEY_OPEN = "ahla_admin_open_batch";
-
-const batches = JSON.parse(localStorage.getItem(KEY_BATCHES)) || [];
-let openId = localStorage.getItem(KEY_OPEN);
-
-// إذا لم يحدد المدير دفعة، نفتح آخر دفعة تلقائيًا إن وجدت
-if (!openId && batches.length) {
-  openId = batches[batches.length - 1].batchId;
-  localStorage.setItem(KEY_OPEN, openId);
+if(localStorage.getItem("role")!=="admin"){
+  alert("غير مصرح");
+  location.href="index.html";
 }
 
-document.getElementById("bid").textContent = openId || "-";
+const batches = JSON.parse(localStorage.getItem("ahla_batches")) || [];
+let html="";
 
-const openBatch = batches.find(b => b.batchId === openId);
-const data = openBatch ? (openBatch.items || []) : [];
-
-render();
-
-function render() {
-  const tbody = document.querySelector("#adminTable tbody");
-  tbody.innerHTML = "";
-
-  if (!openBatch) {
-    tbody.innerHTML = `<tr><td colspan="8">لا توجد دفعة مفتوحة. افتح دفعة من صفحة "البيانات المستلمة".</td></tr>`;
-    return;
-  }
-
-  data.forEach((item, i) => {
-    const imgsHtml = (item.images || []).map(src => `<img class="thumb" src="${src}">`).join("");
-    const row = tbody.insertRow();
-    row.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${item.user || ""}</td>
-      <td>${item.code}</td>
-      <td>${item.unit}</td>
-      <td>${item.qty}</td>
-      <td>${item.price}</td>
-      <td>${item.total}</td>
-      <td>${imgsHtml}</td>
-    `;
+batches.forEach((b,bi)=>{
+  html+=`<h3>دفعة ${bi+1} — المستخدم: ${b.user} — ${b.date}</h3>`;
+  html+="<table><tr><th>#</th><th>رقم الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>";
+  b.items.forEach((i,idx)=>{
+    html+=`<tr><td>${idx+1}</td><td>${i.code}</td><td>${i.qty}</td><td>${i.price}</td><td>${i.total}</td></tr>`;
   });
-}
+  html+="</table><div>";
+  b.images.forEach(img=>html+=`<img src="${img}">`);
+  html+="</div><hr>";
+});
 
-function deleteOpenBatch(){
-  if (!openBatch) return alert("لا توجد دفعة مفتوحة");
-  if (!confirm("هل تريد حذف الدفعة المفتوحة بالكامل؟")) return;
-
-  const idx = batches.findIndex(b => b.batchId === openId);
-  if (idx >= 0) batches.splice(idx, 1);
-
-  localStorage.setItem(KEY_BATCHES, JSON.stringify(batches));
-  localStorage.removeItem(KEY_OPEN);
-
-  location.href = "received.html";
-}
-
-function exportExcel() {
-  if (!openBatch) { alert("لا توجد دفعة مفتوحة"); return; }
-  if (data.length === 0) { alert("لا توجد بيانات"); return; }
-
-  // ✅ Excel: عمود فارغ بين السعر والإجمالي (في Excel فقط)
-  const excelData = data.map(item => ({
-    المستخدم: item.user || "",
-    رقم_الصنف: item.code,
-    الوحدة: item.unit,
-    الكمية: item.qty,
-    السعر: item.price,
-    "": "",           // عمود فارغ
-    الإجمالي: item.total
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(excelData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, `Batch_${openId}`);
-  XLSX.writeFile(wb, `ahla-${openId}.xlsx`);
-}
+document.getElementById("all").innerHTML = html || "لا توجد بيانات";
 </script>
 
-<script src="js/auth.js"></script>
 </body>
 </html>
