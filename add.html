@@ -3,24 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <title>إدخال الأصناف | Ahla</title>
-
 <script src="js/roleGuard.js"></script>
-
 <style>
 body{font-family:Tahoma;background:#f5f5f5;padding:20px}
-nav{background:#222;padding:10px;margin-bottom:15px}
-nav button{background:#6c757d;color:#fff;border:none;padding:7px 12px;margin:3px;border-radius:5px;cursor:pointer}
+nav{background:#222;padding:10px;margin-bottom:15px;display:flex;gap:8px;flex-wrap:wrap}
+nav button{background:#6c757d;color:#fff;border:none;padding:7px 12px;border-radius:6px;cursor:pointer}
 nav .logout{background:#dc3545}
-
 table{width:100%;background:#fff;border-collapse:collapse}
 th,td{border:1px solid #ccc;padding:8px;text-align:center}
 th{background:#4f6f6c;color:#fff}
-
 input{width:100%;padding:6px;box-sizing:border-box}
-
-button.add{background:#6c757d;color:#fff;border:none;padding:6px 12px;border-radius:5px}
-button.save{background:#198754;color:#fff;border:none;padding:8px 16px;border-radius:6px;margin-top:12px}
-
+button.add{background:#6c757d;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer}
+button.save{background:#198754;color:#fff;border:none;padding:8px 16px;border-radius:6px;margin-top:12px;cursor:pointer}
 img{width:64px;margin:4px;border:1px solid #ccc;border-radius:6px}
 </style>
 </head>
@@ -28,9 +22,10 @@ img{width:64px;margin:4px;border:1px solid #ccc;border-radius:6px}
 <body>
 
 <nav>
-  <button onclick="location.href='add.html'">➕ إدخال</button>
-  <button onclick="location.href='sent.html'">📤 البيانات المرسلة</button>
-  <button class="logout" onclick="logout()">🚪 خروج</button>
+  <button type="button" onclick="navGo('add.html')">➕ إدخال</button>
+  <button type="button" onclick="navGo('sent.html')">📤 البيانات المرسلة</button>
+  <button type="button" onclick="navBack()">🔙 رجوع</button>
+  <button type="button" class="logout" onclick="logout()">🚪 خروج</button>
 </nav>
 
 <h2>إدخال الأصناف</h2>
@@ -80,12 +75,28 @@ img{width:64px;margin:4px;border:1px solid #ccc;border-radius:6px}
 <input id="batchImages" type="file" accept="image/*" multiple>
 <div id="preview"></div>
 
-<button class="save" id="sendBtn">💾 حفظ التعديلات وإرسال</button>
+<button type="button" class="save" id="sendBtn">💾 حفظ التعديلات وإرسال</button>
 
 <script>
-/* ===============================
-   تعريف العناصر
-================================ */
+/* ======== تنقل ثابت يعمل في GitHub Pages Project ======== */
+function basePath(){
+  // مثال: /Ahla/add.html -> base = /Ahla/
+  const p = location.pathname;
+  return p.substring(0, p.lastIndexOf('/') + 1);
+}
+function navGo(page){
+  location.href = location.origin + basePath() + page;
+}
+function navBack(){
+  // رجوع ذكي: لو ما فيه history يرجع حسب الدور
+  if (history.length > 1) history.back();
+  else {
+    const role = localStorage.getItem("role");
+    navGo(role === "admin" ? "admin.html" : "add.html");
+  }
+}
+
+/* ======== منطق الصفحة ======== */
 const codeInput   = document.getElementById("code");
 const qtyInput    = document.getElementById("qty");
 const priceInput  = document.getElementById("price");
@@ -100,38 +111,27 @@ const username = localStorage.getItem("user") || "غير معروف";
 let items = [];
 let lastEdit = null;
 
-/* ===============================
-   الحساب الذكي (نهائي)
-================================ */
+// حساب ذكي
 priceInput.addEventListener("input", () => {
   lastEdit = "price";
   const q = Number(qtyInput.value);
   const p = Number(priceInput.value);
   if (q > 0 && p >= 0) totalInput.value = (q * p).toFixed(2);
 });
-
 totalInput.addEventListener("input", () => {
   lastEdit = "total";
   const q = Number(qtyInput.value);
   const t = Number(totalInput.value);
   if (q > 0 && t >= 0) priceInput.value = (t / q).toFixed(2);
 });
-
 qtyInput.addEventListener("input", () => {
   const q = Number(qtyInput.value);
   if (q <= 0) return;
-
-  if (lastEdit === "price" && priceInput.value !== "") {
-    totalInput.value = (q * Number(priceInput.value)).toFixed(2);
-  }
-  if (lastEdit === "total" && totalInput.value !== "") {
-    priceInput.value = (Number(totalInput.value) / q).toFixed(2);
-  }
+  if (lastEdit === "price" && priceInput.value !== "") totalInput.value = (q * Number(priceInput.value)).toFixed(2);
+  if (lastEdit === "total" && totalInput.value !== "") priceInput.value = (Number(totalInput.value) / q).toFixed(2);
 });
 
-/* ===============================
-   إضافة صنف (نهائي بدون أخطاء)
-================================ */
+// إضافة صنف (تحقق نهائي)
 addBtn.addEventListener("click", () => {
   const code = String(codeInput.value).trim();
   const qty  = Number(qtyInput.value);
@@ -145,7 +145,7 @@ addBtn.addEventListener("click", () => {
 
   items.push({
     code,
-    unit: "حبة",
+    unit:"حبة",
     qty,
     price: Number.isFinite(price) ? price : 0,
     total: Number.isFinite(total) ? total : qty * (Number.isFinite(price) ? price : 0)
@@ -160,13 +160,9 @@ addBtn.addEventListener("click", () => {
   lastEdit = null;
 });
 
-/* ===============================
-   عرض الجدول
-================================ */
 function renderItems(){
   const tb = document.querySelector("#itemsTable tbody");
   tb.innerHTML = "";
-
   items.forEach((it,i)=>{
     tb.innerHTML += `
       <tr>
@@ -175,14 +171,12 @@ function renderItems(){
         <td>${it.qty}</td>
         <td>${it.price}</td>
         <td>${it.total}</td>
-        <td><button onclick="items.splice(${i},1);renderItems()">✖</button></td>
+        <td><button type="button" onclick="items.splice(${i},1);renderItems()">✖</button></td>
       </tr>`;
   });
 }
 
-/* ===============================
-   معاينة الصور
-================================ */
+// معاينة الصور العامة للإرسال
 imagesInput.addEventListener("change", ()=>{
   preview.innerHTML = "";
   [...imagesInput.files].forEach(f=>{
@@ -192,18 +186,10 @@ imagesInput.addEventListener("change", ()=>{
   });
 });
 
-/* ===============================
-   إرسال نهائي
-================================ */
+// إرسال (حفظ التعديلات = إرسال)
 sendBtn.addEventListener("click", ()=>{
-  if(items.length === 0){
-    alert("لا توجد أصناف");
-    return;
-  }
-  if(imagesInput.files.length === 0){
-    alert("الصور مطلوبة");
-    return;
-  }
+  if(items.length === 0) return alert("لا توجد أصناف");
+  if(imagesInput.files.length === 0) return alert("الصور مطلوبة");
 
   const toBase64 = f => new Promise(res=>{
     const r = new FileReader();
@@ -213,17 +199,22 @@ sendBtn.addEventListener("click", ()=>{
 
   Promise.all([...imagesInput.files].map(toBase64)).then(images=>{
     const batches = JSON.parse(localStorage.getItem("ahla_batches")) || [];
-
     batches.push({
       id: Date.now(),
       user: username,
       date: new Date().toLocaleString(),
-      items: items,
-      images: images
+      items,
+      images
     });
-
     localStorage.setItem("ahla_batches", JSON.stringify(batches));
-    location.href = "sent.html";
+
+    // تفريغ + انتقال
+    items = [];
+    renderItems();
+    imagesInput.value = "";
+    preview.innerHTML = "";
+
+    navGo("sent.html");
   });
 });
 </script>
