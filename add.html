@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>إدخال الأصناف | Ahla</title>
 
+<!-- حماية الصفحة -->
 <script src="js/roleGuard.js"></script>
 
 <style>
@@ -79,8 +80,8 @@ button {
   <td><input id="code"></td>
   <td><input disabled></td>
   <td><input value="حبة" disabled></td>
-  <td><input id="qty" type="number" oninput="calcTotal()"></td>
-  <td><input id="price" type="number" oninput="calcTotal()"></td>
+  <td><input id="qty" type="number"></td>
+  <td><input id="price" type="number"></td>
   <td><input id="total" disabled></td>
   <td><button class="add" onclick="addItem()">إضافة</button></td>
 </tr>
@@ -105,32 +106,44 @@ button {
 </table>
 
 <script>
-let data = JSON.parse(localStorage.getItem("ahla_data")) || [];
-render();
-
-function calcTotal() {
-  const qty = +qtyInput.value;
-  const price = +priceInput.value;
-  if (qty && price) totalInput.value = qty * price;
-}
-
-const codeInput = document.getElementById("code");
-const qtyInput = document.getElementById("qty");
+/* تعريف العناصر أولًا */
+const codeInput  = document.getElementById("code");
+const qtyInput   = document.getElementById("qty");
 const priceInput = document.getElementById("price");
 const totalInput = document.getElementById("total");
 
+/* حساب تلقائي */
+qtyInput.addEventListener("input", calcTotal);
+priceInput.addEventListener("input", calcTotal);
+
+function calcTotal() {
+  const qty = Number(qtyInput.value);
+  const price = Number(priceInput.value);
+
+  if (qty > 0 && price > 0) {
+    totalInput.value = qty * price;
+  } else {
+    totalInput.value = "";
+  }
+}
+
+/* البيانات */
+let data = JSON.parse(localStorage.getItem("ahla_data")) || [];
+render();
+
+/* إضافة */
 function addItem() {
   if (!codeInput.value || !qtyInput.value || !priceInput.value) {
-    alert("يرجى تعبئة جميع الحقول");
+    alert("يرجى تعبئة رقم الصنف والكمية والسعر");
     return;
   }
 
   data.push({
     code: codeInput.value,
     unit: "حبة",
-    qty: qtyInput.value,
-    price: priceInput.value,
-    total: qtyInput.value * priceInput.value
+    qty: Number(qtyInput.value),
+    price: Number(priceInput.value),
+    total: Number(totalInput.value)
   });
 
   localStorage.setItem("ahla_data", JSON.stringify(data));
@@ -138,6 +151,7 @@ function addItem() {
   render();
 }
 
+/* عرض الجدول */
 function render() {
   const tbody = document.querySelector("#dataTable tbody");
   tbody.innerHTML = "";
@@ -159,22 +173,33 @@ function render() {
   });
 }
 
+/* تعديل */
 function editItem(i) {
   const item = data[i];
   codeInput.value = item.code;
   qtyInput.value = item.qty;
   priceInput.value = item.price;
   totalInput.value = item.total;
+
   data.splice(i, 1);
   localStorage.setItem("ahla_data", JSON.stringify(data));
   render();
 }
 
+/* حذف */
 function deleteItem(i) {
   if (!confirm("هل تريد الحذف؟")) return;
   data.splice(i, 1);
   localStorage.setItem("ahla_data", JSON.stringify(data));
   render();
+}
+
+/* مسح */
+function clearInputs() {
+  codeInput.value = "";
+  qtyInput.value = "";
+  priceInput.value = "";
+  totalInput.value = "";
 }
 </script>
 
@@ -182,4 +207,3 @@ function deleteItem(i) {
 
 </body>
 </html>
-
